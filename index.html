@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Crawler</title>
+  <meta name="description" content="যেকোনো research paper সহজ বাংলায় বুঝুন। একটা spider paper পড়ে, AI প্রতিটা অংশ বাংলায় বুঝিয়ে দেয়, আর paper-এর সাথে মিলিয়ে যাচাই করে। Free, account লাগে না।">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/site.css">
+  <link rel="stylesheet" href="css/report.css">
+</head>
+<body>
+  <div id="bar">
+    <span class="brand">/[•]\ paper crawler</span>
+    <form id="open-form">
+      <input id="open-input" placeholder="arXiv link / ID বা PDF link" aria-label="Paper link" size="28">
+      <button>খুলুন</button>
+    </form>
+    <label class="file-btn">📄 PDF বেছে নিন<input id="file" type="file" accept="application/pdf,.pdf" hidden></label>
+    <span class="meta" id="meta"></span>
+  </div>
+
+  <main id="stage">
+    <div id="paper">
+      <div class="landing">
+        <p class="big">🕷</p>
+        <h1>যেকোনো research paper, সহজ বাংলায়</h1>
+        <p>arXiv link দিন, বা যেকোনো paper-এর PDF এখানে টেনে আনুন। একটা spider paper-টা পড়বে, আর AI প্রতিটা অংশ বাংলায় বুঝিয়ে দেবে।</p>
+        <p class="hint">Free · account লাগে না · AI আপনার computer-এই চলে, paper কোথাও upload হয় না</p>
+        <div class="examples">
+          <span>উদাহরণ:</span>
+          <button data-paper="1706.03762">Attention Is All You Need</button>
+          <button data-paper="1810.04805">BERT</button>
+          <button data-paper="1512.03385">ResNet</button>
+          <button data-paper="2106.09685">LoRA</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <canvas id="crawler" aria-hidden="true"></canvas>
+
+  <aside id="panel" aria-label="বাংলা ব্যাখ্যা">
+    <header>
+      <div class="now" id="now">▸ একটা paper খুলুন</div>
+      <div class="row" id="levels" role="group" aria-label="ব্যাখ্যার স্তর">
+        <button data-level="easy">সহজ</button><button data-level="mid">মাঝারি</button><button data-level="deep">গভীর</button>
+        <span class="sep"></span>
+        <button id="sel" title="Paper-এ কিছু select করে চাপুন (বা E)">✋ নির্বাচিত অংশ</button>
+      </div>
+      <div class="row">
+        <button id="all" class="primary">📑 পুরো paper বিশ্লেষণ</button>
+        <button id="export">⤓ PDF report</button>
+        <button id="pause" title="Spider থামান">⏸</button>
+        <button id="clear" title="দাগ মুছুন">🧹</button>
+      </div>
+      <div id="progress" class="now" hidden></div>
+    </header>
+    <div class="tabs"><button data-tab="explain" class="on">ব্যাখ্যা</button><button data-tab="terms">কঠিন শব্দ <span id="term-count">0</span></button></div>
+    <div class="body" data-pane="explain"><div id="ai"></div><div id="history"></div></div>
+    <div class="body" data-pane="terms" hidden><div id="glossary"><p class="muted">বিশ্লেষণ চললে এখানে কঠিন শব্দের তালিকা আসবে।</p></div></div>
+    <footer>AI ভুল করতে পারে। ✅ মানে code দিয়ে paper-এর সাথে মিলিয়ে দেখা হয়েছে। গবেষণায় সবসময় মূল paper মিলিয়ে নিন।</footer>
+  </aside>
+
+  <div id="report-host" aria-hidden="true"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

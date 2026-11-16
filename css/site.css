@@ -1,0 +1,56 @@
+/* Website additions on top of style.css (paper theme + markup effects). */
+:root {
+  --bn: "Noto Sans Bengali", "Hind Siliguri", "Kohinoor Bangla", "Bangla Sangam MN", system-ui, sans-serif;
+  --ok: #4ade80; --warn: #fbbf24;
+}
+#bar form { display: flex; gap: 4px; }
+#bar input, #bar button { font: inherit; }
+#bar input { min-width: 0; }
+.file-btn { cursor: pointer; background: #111; color: #fff; padding: 2px 10px; border-radius: 4px; }
+
+/* landing */
+.landing { text-align: center; padding: 30px 0; font-family: var(--bn); }
+.landing .big { font-size: 64px; margin: 0; }
+.landing h1 { font: 700 1.6em/1.3 var(--bn); }
+.landing .hint { color: #666; font-size: .9em; }
+.landing .examples { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; margin-top: 18px; font-size: .9em; }
+.landing .examples button { font: 13px system-ui, sans-serif; padding: 6px 12px; border-radius: 16px; border: 1px solid #0003; background: #fff; cursor: pointer; }
+.landing .examples button:hover { border-color: #19c3d6; }
+
+/* panel */
+#panel { font-family: var(--bn); }
+#panel .row { align-items: center; }
+#panel .sep { flex: 1; }
+#panel button.primary { background: #19c3d6; color: #001418; border-color: #19c3d6; font-weight: 700; }
+#panel button:disabled { opacity: .5; cursor: default; }
+#panel .tabs button { font-family: var(--bn); }
+#panel .body { padding-top: 10px; }
+#panel footer { padding: 8px 16px 12px; font-size: 11px; color: #8a9aa3; border-top: 1px solid #ffffff14; }
+.muted { color: #8a9aa3; font-size: 12px; margin: 4px 0 8px; }
+.box { background: #ffffff0b; border: 1px solid #ffffff17; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.box.warn { border-color: #fbbf2455; background: #fbbf2412; color: #fde68a; }
+.box button { margin: 4px 0 2px; }
+.progress { height: 6px; background: #ffffff15; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.progress i { display: block; height: 100%; width: 0; background: #19c3d6; transition: width .3s; }
+.card .bn { font-size: 15px; line-height: 1.75; margin: 0; white-space: pre-wrap; }
+.card .en { margin-top: 8px; color: #b8c6cc; font: 13px/1.55 system-ui, sans-serif; }
+.card .en summary { cursor: pointer; color: #8a9aa3; font-size: 12px; }
+.card .en p { margin: 4px 0 0; }
+.thinking::after { content: " ▌"; color: #19c3d6; animation: blink 1s steps(1) infinite; }
+.checks { margin-top: 10px; display: grid; gap: 6px; font-size: 12.5px; }
+.check { padding: 6px 8px; border-radius: 6px; background: #ffffff08; margin: 6px 0 0; }
+.check.ok { border-left: 3px solid var(--ok); }
+.check.warn { border-left: 3px solid var(--warn); }
+.check q { display: block; margin-top: 4px; color: #cfd8dc; font: 12px/1.5 Georgia, serif; }
+.check button { margin-top: 6px; }
+.ask { margin-top: 10px; gap: 6px; }
+.ask .btn { font: 11px system-ui, sans-serif; color: #e8eef2; background: #ffffff10; border: 1px solid #ffffff22; border-radius: 6px; padding: 4px 8px; text-decoration: none; }
+.ask .btn:hover { background: #ffffff22; }
+.term { padding: 8px 0; border-bottom: 1px solid #ffffff10; }
+.term small { color: #8a9aa3; font-family: system-ui, sans-serif; }
+.term p { margin: 4px 0 0; font-size: 13.5px; }
+#panel button:focus-visible, #bar button:focus-visible, #bar input:focus-visible, .file-btn:focus-within { outline: 2px solid #19c3d6; outline-offset: 1px; }
+
+/* the report is drawn here, off screen, while the PDF is made */
+#report-host { position: absolute; left: -10000px; top: 0; width: 794px; background: #fff; }
+@media (prefers-reduced-motion: reduce) { .thinking::after { animation: none; } }
