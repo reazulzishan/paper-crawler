@@ -409,10 +409,10 @@ $("#export").onclick = async () => {
   if (!state.engine) return askToConnect();
   const btn = $("#export");
   btn.disabled = true;
-  btn.textContent = "বিশ্লেষণ চলছে…";
+  btn.textContent = "চলছে…";
   try {
     if (!(await runAnalysis())) return;
-    btn.textContent = "PDF বানানো হচ্ছে…";
+    btn.textContent = "PDF…";
     const done = state.entries.filter((e) => e.ai).map(({ card, job, ...e }) => e);
     const host = $("#report-host");
     host.innerHTML = `<div class="report">${reportHtml({
@@ -423,13 +423,20 @@ $("#export").onclick = async () => {
     if (!window.html2pdf) await loadScript("vendor/html2pdf.bundle.min.js");
     const name = (state.info.title || "paper").replace(/[^\w\- ]+/g, "").trim().slice(0, 60).replace(/\s+/g, "-") + "-bangla-breakdown.pdf";
     // The browser draws the Bangla (so conjuncts are shaped right), then it's saved as a PDF.
-    await window.html2pdf().set({
-      margin: [12, 10, 14, 10], filename: name,
-      image: { type: "jpeg", quality: 0.92 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["css", "legacy"], avoid: ["section", "tr"] },
-    }).from(host.firstElementChild).save();
+    // html2canvas captures relative to the scroll position: render from the top, then put the reader back.
+    const y = scrollY;
+    scrollTo(0, 0);
+    try {
+      await window.html2pdf().set({
+        margin: [12, 10, 14, 10], filename: name,
+        image: { type: "jpeg", quality: 0.92 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0, windowWidth: 900 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"], avoid: ["section", "tr"] },
+      }).from(host.firstElementChild).save();
+    } finally {
+      scrollTo(0, y);
+    }
     host.innerHTML = "";
     toast("PDF download হয়েছে: " + name);
   } catch (e) {
