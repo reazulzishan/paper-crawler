@@ -5,63 +5,97 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Paper Crawler</title>
   <meta name="description" content="যেকোনো research paper সহজ বাংলায় বুঝুন। একটা spider paper পড়ে, AI প্রতিটা অংশ বাংলায় বুঝিয়ে দেয়, আর paper-এর সাথে মিলিয়ে যাচাই করে। Free, account লাগে না।">
+  <meta property="og:title" content="Paper Crawler: research paper, সহজ বাংলায়">
+  <meta property="og:description" content="arXiv link দিন বা যেকোনো PDF খুলুন। Free, account লাগে না, AI আপনার computer-এই চলে।">
+  <meta property="og:image" content="icon.png">
+  <link rel="icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/site.css">
   <link rel="stylesheet" href="css/report.css">
 </head>
 <body>
-  <div id="bar">
-    <span class="brand">/[•]\ paper crawler</span>
-    <form id="open-form">
-      <input id="open-input" placeholder="arXiv link / ID বা PDF link" aria-label="Paper link" size="28">
-      <button>খুলুন</button>
+  <header id="bar">
+    <a class="brand" href="./" aria-label="Paper Crawler home"><img src="icon.png" alt="" width="28" height="28"><span>Paper Crawler</span></a>
+    <form id="open-form" role="search">
+      <span class="search-icon" aria-hidden="true">🔗</span>
+      <input id="open-input" placeholder="arXiv link / ID বা PDF link দিন…" aria-label="Paper link" autocomplete="off">
+      <button class="go">খুলুন</button>
     </form>
-    <label class="file-btn">📄 PDF বেছে নিন<input id="file" type="file" accept="application/pdf,.pdf" hidden></label>
-    <span class="meta" id="meta"></span>
-  </div>
+    <label class="file-btn" title="Computer-এ থাকা যেকোনো paper-এর PDF">📄 <span>PDF খুলুন</span><input id="file" type="file" accept="application/pdf,.pdf" hidden></label>
+    <div class="meta" id="meta" role="status" aria-live="polite"></div>
+  </header>
 
   <main id="stage">
     <div id="paper">
-      <div class="landing">
-        <p class="big">🕷</p>
-        <h1>যেকোনো research paper, সহজ বাংলায়</h1>
-        <p>arXiv link দিন, বা যেকোনো paper-এর PDF এখানে টেনে আনুন। একটা spider paper-টা পড়বে, আর AI প্রতিটা অংশ বাংলায় বুঝিয়ে দেবে।</p>
-        <p class="hint">Free · account লাগে না · AI আপনার computer-এই চলে, paper কোথাও upload হয় না</p>
+      <section class="landing">
+        <div class="hero">
+          <img class="hero-spider" src="icon.png" alt="" width="96" height="96">
+          <h1>যেকোনো research paper,<br><mark>সহজ বাংলায়</mark></h1>
+          <p class="lead">একটা spider আপনার সাথে paper পড়ে, আর AI প্রতিটা অংশ বাংলায় বুঝিয়ে দেয়। প্রতিটা কথা paper-এর সাথে মিলিয়ে যাচাই করা।</p>
+          <div class="badges"><span>✓ Free</span><span>✓ Account লাগে না</span><span>✓ AI আপনার computer-এ চলে</span><span>✓ Paper upload হয় না</span></div>
+        </div>
+
+        <h2 class="landing-h">কীভাবে ব্যবহার করবেন</h2>
+        <ol class="steps">
+          <li><b>১</b><div><h3>Paper খুলুন</h3><p>উপরের box-এ arXiv link দিন। Google Scholar বা অন্য কোথাও পাওয়া PDF হলে download করে <em>📄 PDF খুলুন</em> চাপুন, বা এখানে টেনে আনুন।</p></div></li>
+          <li><b>২</b><div><h3>একবার AI চালু করুন</h3><p>পাশের panel থেকে একটা free AI বেছে নিন। প্রথমবার download হয়, এরপর internet ছাড়াও চলে।</p></div></li>
+          <li><b>৩</b><div><h3>Scroll করে পড়ুন</h3><p>আপনি যে অংশ পড়বেন, spider সেখানে যাবে আর পাশে সেই অংশের সহজ বাংলা ব্যাখ্যা আসবে।</p></div></li>
+          <li><b>৪</b><div><h3>পুরো paper-এর নোট নিন</h3><p><em>📑 পুরো বিশ্লেষণ</em> চাপলে সব অংশ আর কঠিন শব্দের তালিকা, তারপর <em>⤓ PDF</em>-এ DOI সহ report।</p></div></li>
+        </ol>
+
+        <h2 class="landing-h">কেন বিশ্বাস করবেন</h2>
+        <div class="trust">
+          <p><span class="chip ok">✅ প্রমাণ মিলেছে</span> AI যে বাক্যের ভিত্তিতে বলছে, code সেটা paper-এ হুবহু খুঁজে পেয়েছে। Spider সেই বাক্যটা paper-এ দেখিয়ে দেয়।</p>
+          <p><span class="chip warn">⚠️ যাচাই করুন</span> প্রমাণ বা কোনো সংখ্যা paper-এ মেলেনি। মূল লেখা নিজে পড়ে নিন।</p>
+        </div>
+
+        <h2 class="landing-h">এখনই চেষ্টা করুন</h2>
         <div class="examples">
-          <span>উদাহরণ:</span>
           <button data-paper="1706.03762">Attention Is All You Need</button>
           <button data-paper="1810.04805">BERT</button>
           <button data-paper="1512.03385">ResNet</button>
           <button data-paper="2106.09685">LoRA</button>
         </div>
-      </div>
+      </section>
     </div>
   </main>
 
   <canvas id="crawler" aria-hidden="true"></canvas>
 
   <aside id="panel" aria-label="বাংলা ব্যাখ্যা">
+    <button id="handle" class="handle" aria-label="Panel বড়/ছোট করুন"><i></i></button>
     <header>
-      <div class="now" id="now">▸ একটা paper খুলুন</div>
-      <div class="row" id="levels" role="group" aria-label="ব্যাখ্যার স্তর">
-        <button data-level="easy">সহজ</button><button data-level="mid">মাঝারি</button><button data-level="deep">গভীর</button>
-        <span class="sep"></span>
-        <button id="sel" title="Paper-এ কিছু select করে চাপুন (বা E)">✋ নির্বাচিত অংশ</button>
+      <div class="now-row">
+        <div class="now" id="now">একটা paper খুলুন</div>
+        <div class="seg" id="levels" role="group" aria-label="ব্যাখ্যার স্তর">
+          <button data-level="easy" title="একদম নতুনদের জন্য">সহজ</button><button data-level="mid" title="ML-এর basic জানলে">মাঝারি</button><button data-level="deep" title="Researcher-দের জন্য">গভীর</button>
+        </div>
       </div>
-      <div class="row">
-        <button id="all" class="primary">📑 পুরো paper বিশ্লেষণ</button>
-        <button id="export">⤓ PDF report</button>
-        <button id="pause" title="Spider থামান">⏸</button>
-        <button id="clear" title="দাগ মুছুন">🧹</button>
-      </div>
-      <div id="progress" class="now" hidden></div>
+      <div id="progress" class="progress-line" hidden></div>
     </header>
-    <div class="tabs"><button data-tab="explain" class="on">ব্যাখ্যা</button><button data-tab="terms">কঠিন শব্দ <span id="term-count">0</span></button></div>
-    <div class="body" data-pane="explain"><div id="ai"></div><div id="history"></div></div>
-    <div class="body" data-pane="terms" hidden><div id="glossary"><p class="muted">বিশ্লেষণ চললে এখানে কঠিন শব্দের তালিকা আসবে।</p></div></div>
-    <footer>AI ভুল করতে পারে। ✅ মানে code দিয়ে paper-এর সাথে মিলিয়ে দেখা হয়েছে। গবেষণায় সবসময় মূল paper মিলিয়ে নিন।</footer>
+    <nav class="tabs" role="tablist">
+      <button data-tab="explain" class="on" role="tab">ব্যাখ্যা</button>
+      <button data-tab="map" role="tab">অংশসমূহ <span class="count" id="map-count">0</span></button>
+      <button data-tab="terms" role="tab">কঠিন শব্দ <span class="count" id="term-count">0</span></button>
+    </nav>
+    <div class="body" data-pane="explain"><div id="ai"></div><div id="hint"></div><div id="history"></div></div>
+    <div class="body" data-pane="map" hidden><ol id="map"><li class="muted">Paper খুললে এখানে সব অংশের তালিকা আসবে। যেকোনোটায় চাপ দিলে spider সেখানে যাবে।</li></ol></div>
+    <div class="body" data-pane="terms" hidden><div id="glossary"><p class="muted">ব্যাখ্যা আসার সাথে সাথে এখানে কঠিন শব্দ আর তাদের বাংলা মানে জমা হবে।</p></div></div>
+    <div class="actions">
+      <button id="all" class="primary" title="প্রতিটা অংশের ব্যাখ্যা + কঠিন শব্দের তালিকা">📑 পুরো বিশ্লেষণ</button>
+      <button id="export" title="সব ব্যাখ্যা DOI সহ PDF হিসেবে নামান">⤓ PDF</button>
+      <button id="sel" title="Paper-এ কিছু select করে চাপুন (বা E)">✋ নির্বাচিত</button>
+      <button id="pause" class="icon" title="Spider থামান / চালান" aria-label="Spider থামান">⏸</button>
+      <button id="clear" class="icon" title="দাগ মুছুন" aria-label="দাগ মুছুন">🧹</button>
+    </div>
+    <footer>AI ভুল করতে পারে। ✅ মানে code দিয়ে paper-এর সাথে মিলিয়ে দেখা হয়েছে।</footer>
   </aside>
 
+  <div id="drop-overlay" hidden><div><p class="big">📄</p><p>PDF এখানে ছেড়ে দিন</p><p class="small">যেকোনো research paper। আপনার computer-এই পড়া হবে।</p></div></div>
+  <div id="toasts" aria-live="polite"></div>
   <div id="report-host" aria-hidden="true"></div>
   <script type="module" src="js/app.js"></script>
 </body>

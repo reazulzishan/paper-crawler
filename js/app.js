@@ -19,6 +19,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const MAX_TEXT = 4000; // small on-device models have small context windows
 
+const LANDING = document.querySelector("#paper").innerHTML; // the start page, restored after an error
 const state = {
   level: "easy", engine: null, busy: false, queue: [], entries: [], glossary: new Map(),
   paper: null, info: null, crawler: null,
@@ -36,12 +37,12 @@ async function openInput(raw) {
     if (/^https?:\/\//.test(s)) return await openPdfUrl(s);
     status("এটা arXiv link/ID বা PDF link মনে হচ্ছে না।");
   } catch (e) {
-    status("⚠ " + e.message);
+    fail(e);
   }
 }
 
 async function openArxiv(id) {
-  status(`arXiv ${id} আনা হচ্ছে…`);
+  showLoading(`arXiv ${id} আনা হচ্ছে…`);
   const doi = "10.48550/arXiv." + id.replace(/v\d+$/, "");
   const r = await fetch(`https://arxiv.org/html/${id}`).catch(() => null);
   const html = r?.ok ? await r.text() : "";
@@ -64,7 +65,7 @@ async function openArxiv(id) {
 }
 
 async function openPdfUrl(url) {
-  status("PDF আনা হচ্ছে…");
+  showLoading("PDF আনা হচ্ছে…");
   let r;
   try { r = await fetch(url); } catch {
     throw new Error("এই website অন্য সাইটকে PDF দিতে দেয় না। PDF-টা download করে এখানে টেনে আনুন।");
@@ -74,6 +75,7 @@ async function openPdfUrl(url) {
 }
 
 async function openPdf(buf, meta) {
+  showLoading("PDF পড়া হচ্ছে…");
   const r = await pdfToArticle(buf, (p, n) => status(`PDF পড়া হচ্ছে… পৃষ্ঠা ${p}/${n}`));
   const article = new DOMParser().parseFromString(r.html, "text/html").querySelector("article");
   return mount(document.adoptNode(article), meta, `${r.pages} পৃষ্ঠার PDF · equation ও ছবি মূল PDF-এ দেখুন`);
@@ -103,9 +105,14 @@ function mount(article, meta, note) {
   state.glossary.clear();
   $("#history").replaceChildren();
   renderGlossary();
+  buildMap(paper);
+  showHint();
 
   if (!state.crawler) {
-    state.crawler = new Crawler({ canvas: $("#crawler"), paperEl, companion: true, onSection: (s) => enqueue(jobFor(s)) });
+    state.crawler = new Crawler({
+      canvas: $("#crawler"), paperEl, companion: true,
+      onSection: (s) => { markCurrent(s.title); enqueue(jobFor(s)); },
+    });
   }
   state.crawler.setPaper(paper);
   const abs = paper.sections.find((s) => s.isAbstract);
@@ -113,6 +120,46 @@ function mount(article, meta, note) {
 }
 
 function status(t) { $("#meta").textContent = t; }
+
+/** Show what went wrong; if no paper is open yet, bring the start page back. */
+function fail(e) {
+  status("⚠ " + e.message);
+  toast("⚠ " + e.message, true);
+  if (!state.paper) $("#paper").innerHTML = LANDING;
+}
+
+/** Grey placeholder lines while a paper downloads / is read. */
+function showLoading(text) {
+  status(text);
+  $("#paper").innerHTML = `<div class="paper-loading" aria-label="${esc(text)}">${"<i></i>".repeat(9)}</div>`;
+}
+
+// ------------------------------------------------------------------ section map (tab "অংশসমূহ")
+function buildMap(paper) {
+  const list = paper.sections.filter((s) => s.title !== "Title" && !s.isReferences);
+  $("#map-count").textContent = list.length;
+  $("#map").innerHTML = list.map((s, i) => `<li class="${s.heading.tagName === "H3" ? "sub" : ""}" data-sec="${esc(s.title)}">
+      <button data-i="${i}"><span class="st"></span><span>${esc(s.isAbstract ? "Abstract · TL;DR" : s.title)}</span></button></li>`).join("");
+  $("#map").querySelectorAll("button").forEach((b) => (b.onclick = () => {
+    const s = list[+b.dataset.i];
+    s.heading.scrollIntoView({ behavior: "smooth", block: "start" }); // the spider follows the reader
+    enqueue(jobFor(s));
+  }));
+}
+const mapItem = (title) => [...$("#map").children].find((li) => li.dataset.sec === title);
+function setMapStatus(title, st) {
+  const dot = mapItem(title)?.querySelector(".st");
+  if (dot) { dot.className = "st " + st; dot.textContent = st === "done" ? "✓" : st === "warn" ? "!" : ""; }
+}
+function markCurrent(title) {
+  [...$("#map").children].forEach((li) => li.classList.toggle("current", li.dataset.sec === title));
+}
+
+function showHint() {
+  $("#hint").innerHTML = `<div class="hint"><span class="arrow">↓</span><span>Paper-টা নিচে scroll করে পড়ুন। Spider আপনার সাথে যাবে, আর যে অংশে থামবেন সেটার বাংলা ব্যাখ্যা এখানে আসবে।</span></div>`;
+  const off = () => { if (scrollY > 200) { $("#hint").innerHTML = ""; removeEventListener("scroll", off); } };
+  addEventListener("scroll", off, { passive: true });
+}
 
 function jobFor(s, kind) {
   return {
@@ -126,15 +173,15 @@ async function setupAI() {
   const box = $("#ai");
   const d = await detect();
   const nanoOk = d.nano !== "unavailable";
+  const opt = (engine, icon, title, sub, rec) => `<button class="ai-opt" data-engine="${engine}"><span class="ic">${icon}</span>
+    <b>${title}${rec ? `<span class="rec">ভালো</span>` : ""}</b><span>${sub}</span></button>`;
   const options = [];
-  if (nanoOk) options.push(`<button class="primary" data-engine="nano">⚡ Chrome-এর built-in AI চালু করুন</button><p class="muted">সবচেয়ে হালকা। Chrome একবার model download করবে, তারপর offline চলবে।</p>`);
-  if (d.gpu) {
-    options.push(`<button class="${nanoOk ? "" : "primary"}" data-engine="big">🧠 ${WEB_MODELS.big.label} চালু করুন</button><p class="muted">${WEB_MODELS.big.note}। সরাসরি বাংলায় লেখে।</p>`);
-    options.push(`<button data-engine="small">🪶 ${WEB_MODELS.small.label} চালু করুন</button><p class="muted">${WEB_MODELS.small.note}</p>`);
-  }
-  box.innerHTML = `<div class="box"><p><b>বাংলা ব্যাখ্যার জন্য একটা free AI বেছে নিন</b> (একবার download, তারপর আপনার computer-এই চলবে):</p>
-    ${options.join("") || `<p>এই browser বা computer-এ কোনো AI চালানো যায় না।</p>`}
-    <p class="muted">AI ছাড়াও প্রতিটা অংশের নিচে <b>Claude / ChatGPT</b> বোতাম থাকবে: আপনার free account-এ এক click-এ বাংলা ব্যাখ্যা।</p>
+  if (d.gpu) options.push(opt("big", "🧠", WEB_MODELS.big.label, "সরাসরি বাংলায় লেখে · প্রায় 2.5 GB, একবার", true));
+  if (nanoOk) options.push(opt("nano", "⚡", "Chrome-এর built-in AI", "সবচেয়ে হালকা · ইংরেজি থেকে বাংলা অনুবাদ"));
+  if (d.gpu) options.push(opt("small", "🪶", WEB_MODELS.small.label, "দুর্বল computer-এর জন্য · প্রায় 1.3 GB"));
+  box.innerHTML = `<div class="box ai-pick"><h3>বাংলা ব্যাখ্যার জন্য AI বেছে নিন</h3>
+    <p>Free। একবার download হয়, তারপর আপনার computer-এই চলে, internet ছাড়াও।</p>
+    ${options.join("") || `<p>এই browser বা computer-এ AI চালানো যায় না। প্রতিটা অংশের নিচের <b>Claude / ChatGPT</b> বোতাম ব্যবহার করুন।</p>`}
     <div class="progress" hidden><i></i></div><p id="ai-msg" class="muted"></p></div>`;
   box.querySelectorAll("[data-engine]").forEach((b) => (b.onclick = () => startEngine(b.dataset.engine)));
   if (d.nano === "available") startEngine("nano"); // already downloaded earlier: no click needed
@@ -152,7 +199,8 @@ async function startEngine(kind) {
       if (msg) msg.textContent = `${label} download/load হচ্ছে… ${Math.round(frac * 100)}% (প্রথমবার কয়েক মিনিট লাগতে পারে)`;
     });
     state.engine = engine;
-    box.innerHTML = `<p class="muted">✓ AI: ${esc(engine.name)}</p>`;
+    box.innerHTML = `<div class="ai-ready">AI চালু: ${esc(engine.name)}</div>`;
+    toast("AI চালু হয়েছে। এখন paper পড়ুন, ব্যাখ্যা আসতে থাকবে।");
     // sections shown before the AI was ready get a real explanation now
     const redo = state.entries.filter((e) => !e.ai && !e.error);
     state.entries = state.entries.filter((e) => !redo.includes(e));
@@ -171,7 +219,7 @@ function enqueue(job) {
   job.level = state.level;
   job.id = [job.kind, job.section, job.level, job.kind === "selection" ? job.text.slice(0, 60) : ""].join("|");
   if (state.entries.some((e) => e.id === job.id) || state.queue.some((j) => j.id === job.id)) return;
-  $("#now").textContent = "▸ " + (job.kind === "tldr" ? "TL;DR" : job.section);
+  $("#now").textContent = "🕷 " + (job.kind === "tldr" ? "TL;DR: পুরো paper এক নজরে" : job.section);
   state.queue = state.queue.filter((j) => j.kind !== "section" || job.kind !== "section"); // newest section only
   job.kind === "selection" ? state.queue.unshift(job) : state.queue.push(job);
   pump();
@@ -194,6 +242,7 @@ async function explain(job) {
   state.entries.push(entry);
   const card = makeCard(entry);
   entry.card = card;
+  if (state.engine && job.kind !== "selection") setMapStatus(job.section, "busy");
   if (state.engine) {
     const key = "pc:" + (state.paper?.id || "") + "|" + job.id + "|" + state.engine.name;
     try {
@@ -214,6 +263,10 @@ async function explain(job) {
     }
   }
   renderCard(card, entry);
+  if (job.kind !== "selection") {
+    const ok = entry.checks?.evidenceOk && !entry.checks.missingNumbers.length;
+    setMapStatus(job.section, entry.ai ? (ok ? "done" : "warn") : "");
+  }
   if (job.quiet || !entry.checks) return;
   // let the spider show where the answer comes from
   const phrase = entry.checks.evidenceOk ? entry.ai.evidence : entry.checks.keyOk ? entry.ai.key : null;
@@ -230,48 +283,55 @@ function point(phrase, container) {
 function makeCard(entry) {
   const card = document.createElement("article");
   card.className = "card live";
-  const title = entry.kind === "tldr" ? "TL;DR · পুরো paper এক নজরে" : entry.kind === "selection" ? "নির্বাচিত অংশ · " + entry.section : entry.section;
-  card.innerHTML = `<h4>${esc(title)}<span class="tag">${{ easy: "সহজ", mid: "মাঝারি", deep: "গভীর" }[entry.level]}</span></h4>
-    <p class="bn ${state.engine ? "thinking" : ""}">${state.engine ? "ভাবছে…" : ""}</p>`;
+  const kind = entry.kind === "tldr" ? "TL;DR" : entry.kind === "selection" ? "নির্বাচিত অংশ" : "অংশ";
+  const title = entry.kind === "tldr" ? "পুরো paper এক নজরে" : entry.section;
+  card.innerHTML = `<h4><span>${kind}</span><span class="sec">${esc(title)}</span><span class="tag">${{ easy: "সহজ", mid: "মাঝারি", deep: "গভীর" }[entry.level]}</span></h4>
+    <p class="bn ${state.engine ? "thinking" : ""}">${state.engine ? "spider পড়ছে, AI বাংলায় লিখছে" : ""}</p>
+    ${state.engine ? `<div class="skeleton"><i></i><i></i><i></i></div>` : ""}`;
   $("#history").prepend(card);
   return card;
 }
 
 function renderCard(card, entry) {
   card.classList.remove("live");
+  card.querySelector(".skeleton")?.remove();
   const bn = card.querySelector(".bn");
   bn.classList.remove("thinking");
-  bn.textContent = entry.bn || entry.ai?.explanation || (entry.error ? "" : state.engine ? "" : "AI চালু না থাকলে নিচের বোতাম দিয়ে আপনার free Claude/ChatGPT-এ বুঝে নিন।");
-  if (entry.error) bn.insertAdjacentHTML("afterend", `<p class="check warn">⚠ AI উত্তর দিতে পারেনি: ${esc(entry.error)}</p>`);
+  bn.textContent = entry.bn || entry.ai?.explanation || (entry.error ? "" : state.engine ? "" : "AI চালু করলে এখানে বাংলা ব্যাখ্যা আসবে। এখনই চাইলে নিচের Claude / ChatGPT বোতাম দিয়ে আপনার free account-এ বুঝে নিন।");
+  if (entry.error) bn.insertAdjacentHTML("afterend", `<div class="checks"><span class="chip warn">⚠ AI উত্তর দিতে পারেনি: ${esc(entry.error)}</span></div>`);
   if (entry.ai?.explanation && entry.bn && entry.ai.explanation !== entry.bn) {
-    card.insertAdjacentHTML("beforeend", `<details class="en"><summary>English</summary><p>${esc(entry.ai.explanation)}</p></details>`);
+    card.insertAdjacentHTML("beforeend", `<details class="en"><summary>English-এ দেখুন</summary><p>${esc(entry.ai.explanation)}</p></details>`);
   }
   const c = entry.checks;
   if (c) {
-    const div = document.createElement("div");
-    div.className = "checks";
-    div.innerHTML =
-      (c.evidenceOk
-        ? `<div class="check ok">✅ প্রমাণ বাক্যটা paper-এ হুবহু আছে<q>${esc(entry.ai.evidence)}</q><button data-act="point">paper-এ দেখাও</button></div>`
-        : `<div class="check warn">⚠️ AI-এর দেওয়া প্রমাণ বাক্য paper-এ হুবহু মেলেনি। এই ব্যাখ্যা সাবধানে পড়ুন।</div>`) +
-      (c.numbers.length
-        ? c.missingNumbers.length
-          ? `<div class="check warn">⚠️ এই সংখ্যাগুলো এই অংশে পাওয়া যায়নি: <b>${esc(c.missingNumbers.join(", "))}</b></div>`
-          : `<div class="check ok">✅ ব্যাখ্যার সব সংখ্যা (${esc(c.numbers.join(", "))}) paper-এ আছে</div>`
-        : "");
-    div.querySelector("[data-act=point]")?.addEventListener("click", () => point(entry.ai.evidence, entry.job.container));
-    card.append(div);
+    const chips = document.createElement("div");
+    chips.className = "checks";
+    chips.innerHTML =
+      (c.evidenceOk ? `<span class="chip ok" title="AI যে বাক্যের ভিত্তিতে বলছে, সেটা paper-এ হুবহু পাওয়া গেছে">✅ প্রমাণ মিলেছে</span>`
+        : `<span class="chip warn" title="AI-এর দেওয়া প্রমাণ বাক্য paper-এ হুবহু নেই">⚠️ প্রমাণ মেলেনি, নিজে যাচাই করুন</span>`) +
+      (c.numbers.length ? (c.missingNumbers.length
+        ? `<span class="chip warn">⚠️ সংখ্যা মেলেনি: ${esc(c.missingNumbers.join(", "))}</span>`
+        : `<span class="chip ok">✅ সংখ্যা মিলেছে: ${esc(c.numbers.join(", "))}</span>`) : "");
+    card.append(chips);
+    if (c.evidenceOk) {
+      const ev = document.createElement("blockquote");
+      ev.className = "evidence";
+      ev.innerHTML = `“${esc(entry.ai.evidence)}”<button>🕷 paper-এ দেখাও</button>`;
+      ev.querySelector("button").onclick = () => point(entry.ai.evidence, entry.job.container);
+      card.append(ev);
+    }
   }
   // Always offer the strongest free option: the reader's own Claude / ChatGPT.
   const prompt = handoffPrompt(entry.job);
   const ask = document.createElement("div");
-  ask.className = "row ask";
-  ask.innerHTML = `<span class="muted">আরও ভালো ব্যাখ্যা:</span>
-    <a class="btn" target="_blank" rel="noopener" href="${handoffUrl.claude(prompt)}">Claude-এ বুঝুন</a>
-    <a class="btn" target="_blank" rel="noopener" href="${handoffUrl.chatgpt(prompt)}">ChatGPT-এ বুঝুন</a>
-    <button data-act="copy">prompt copy</button>`;
+  ask.className = "card-actions";
+  ask.innerHTML = `<span class="lbl">আরও গভীরে:</span>
+    <a target="_blank" rel="noopener" href="${handoffUrl.claude(prompt)}">Claude-এ বুঝুন ↗</a>
+    <a target="_blank" rel="noopener" href="${handoffUrl.chatgpt(prompt)}">ChatGPT-এ বুঝুন ↗</a>
+    <button data-act="copy">⧉ copy</button>`;
   ask.querySelector("[data-act=copy]").onclick = async (e) => {
-    try { await navigator.clipboard.writeText(prompt); e.target.textContent = "copied ✓"; } catch { e.target.textContent = "copy হয়নি"; }
+    const text = entry.bn ? entry.bn + "\n\n— " + (state.info?.title || "") : prompt;
+    try { await navigator.clipboard.writeText(text); e.target.textContent = "✓ copied"; } catch { e.target.textContent = "copy হয়নি"; }
   };
   card.append(ask);
 }
@@ -281,7 +341,7 @@ function renderGlossary() {
   if (!state.glossary.size) return;
   const items = [...state.glossary.values()].sort((a, b) => a.term.localeCompare(b.term));
   $("#glossary").innerHTML = items.map((t) =>
-    `<div class="term"><b>${esc(t.term)}</b> <small>${esc(t.section)}</small><p>${esc(t.bn || t.meaning)}</p></div>`).join("");
+    `<div class="term"><b>${esc(t.term)}</b><small>${esc(t.section)}</small><p>${esc(t.bn || t.meaning)}</p></div>`).join("");
 }
 
 // ================================================================== full analysis + report
@@ -296,7 +356,7 @@ $("#all").onclick = async () => {
   prog.hidden = false;
   try {
     for (const [i, s] of sections.entries()) {
-      prog.textContent = `📑 বিশ্লেষণ চলছে… ${i + 1}/${sections.length}: ${s.title}`;
+      prog.innerHTML = `📑 পুরো paper বিশ্লেষণ: ${i + 1}/${sections.length} · ${esc(s.title)}<div class="bar"><i style="width:${Math.round((i / sections.length) * 100)}%"></i></div>`;
       wrapWords(s.container); // so the spider can point there later
       const job = { ...jobFor(s), level: state.level, order: i, quiet: true };
       job.id = [job.kind, job.section, job.level, ""].join("|");
@@ -304,7 +364,8 @@ $("#all").onclick = async () => {
       if (old) { old.order = i; continue; }
       await explain(job);
     }
-    prog.textContent = `✅ পুরো paper বিশ্লেষণ শেষ (${sections.length}টা অংশ)। "⤓ PDF report" চাপুন।`;
+    prog.innerHTML = `✅ বিশ্লেষণ শেষ: ${sections.length}টা অংশ, ${state.glossary.size}টা কঠিন শব্দ। এখন <b>⤓ PDF</b> চাপুন।<div class="bar"><i style="width:100%"></i></div>`;
+    toast("পুরো paper বিশ্লেষণ শেষ। ⤓ PDF চাপলে DOI সহ report পাবেন।");
   } finally {
     state.busy = false;
     $("#all").disabled = false;
@@ -318,6 +379,7 @@ $("#export").onclick = async () => {
   const btn = $("#export");
   btn.disabled = true;
   btn.textContent = "PDF বানানো হচ্ছে…";
+  toast("PDF report বানানো হচ্ছে…");
   try {
     const host = $("#report-host");
     host.innerHTML = `<div class="report">${reportHtml({
@@ -336,12 +398,13 @@ $("#export").onclick = async () => {
       pagebreak: { mode: ["css", "legacy"], avoid: ["section", "tr"] },
     }).from(host.firstElementChild).save();
     host.innerHTML = "";
+    toast("✓ PDF download হয়েছে: " + name);
   } catch (e) {
     console.error(e);
     toast("PDF বানানো গেল না: " + e.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = "⤓ PDF report";
+    btn.textContent = "⤓ PDF";
   }
 };
 
@@ -353,12 +416,12 @@ function loadScript(src) {
   });
 }
 
-function toast(text) {
+function toast(text, warn = /আগে|গেল না|⚠/.test(text)) {
   const d = document.createElement("div");
-  d.className = "box warn";
+  d.className = "toast" + (warn ? " warn" : "");
   d.textContent = text;
-  $("#history").prepend(d);
-  setTimeout(() => d.remove(), 6000);
+  $("#toasts").append(d);
+  setTimeout(() => d.remove(), 5000);
 }
 
 // ================================================================== controls
@@ -395,15 +458,25 @@ addEventListener("keydown", (e) => {
 $("#open-form").onsubmit = (e) => { e.preventDefault(); openInput($("#open-input").value); };
 $("#file").onchange = async (e) => {
   const f = e.target.files[0];
-  if (f) openPdf(await f.arrayBuffer(), { id: "file:" + f.name + ":" + f.size, url: null }).catch((err) => status("⚠ " + err.message));
+  if (f) openPdf(await f.arrayBuffer(), { id: "file:" + f.name + ":" + f.size, url: null }).catch(fail);
 };
+// Dragging a file anywhere shows a big drop zone.
+let dragDepth = 0;
+addEventListener("dragenter", (e) => { if ([...e.dataTransfer.types].includes("Files")) { dragDepth++; $("#drop-overlay").hidden = false; } });
+addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("#drop-overlay").hidden = true; } });
 addEventListener("dragover", (e) => e.preventDefault());
 addEventListener("drop", async (e) => {
   e.preventDefault();
+  dragDepth = 0;
+  $("#drop-overlay").hidden = true;
   const f = [...e.dataTransfer.files].find((f) => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
-  if (f) openPdf(await f.arrayBuffer(), { id: "file:" + f.name + ":" + f.size, url: null }).catch((err) => status("⚠ " + err.message));
+  if (f) openPdf(await f.arrayBuffer(), { id: "file:" + f.name + ":" + f.size, url: null }).catch(fail);
 });
-document.querySelectorAll("[data-paper]").forEach((b) => (b.onclick = () => openArxiv(b.dataset.paper).catch((e) => status("⚠ " + e.message))));
+$("#paper").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-paper]");
+  if (b) openArxiv(b.dataset.paper).catch(fail);
+});
+$("#handle").onclick = () => $("#panel").classList.toggle("expanded"); // phones: pull the sheet up/down
 
 // ================================================================== boot
 if (new URLSearchParams(location.search).has("debug")) window.__app = state; // for testing
@@ -412,4 +485,4 @@ try { saved = localStorage.getItem("pc:level"); } catch { /* private mode */ }
 setLevel(saved || "easy");
 setupAI();
 const start = location.hash.slice(1).replace(/-(?=\d{4,5}(v\d+)?$)/, ".");
-if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(start)) openArxiv(start).catch((e) => status("⚠ " + e.message));
+if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(start)) openArxiv(start).catch(fail);
