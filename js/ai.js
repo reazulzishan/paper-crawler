@@ -54,10 +54,13 @@ Return JSON with:
 
 /** Which engines can run here? (no downloads, no prompts) */
 export async function detect() {
-  const nano = "LanguageModel" in self ? await LanguageModel.availability(LANG).catch(() => "unavailable") : "unavailable";
-  const tr = "Translator" in self ? await Translator.availability({ sourceLanguage: "en", targetLanguage: "bn" }).catch(() => "unavailable") : "unavailable";
-  let gpu = false;
-  try { gpu = !!(await navigator.gpu?.requestAdapter()); } catch { /* no WebGPU */ }
+  // Some Chrome profiles never answer these checks; give each 3 s, then call it unavailable.
+  const within = (p, fallback) => Promise.race([Promise.resolve(p).catch(() => fallback), new Promise((r) => setTimeout(() => r(fallback), 3000))]);
+  const [nano, tr, gpu] = await Promise.all([
+    "LanguageModel" in self ? within(LanguageModel.availability(LANG), "unavailable") : "unavailable",
+    "Translator" in self ? within(Translator.availability({ sourceLanguage: "en", targetLanguage: "bn" }), "unavailable") : "unavailable",
+    within(navigator.gpu?.requestAdapter().then((a) => !!a), false),
+  ]);
   return { nano, tr, gpu };
 }
 
