@@ -1,0 +1,27 @@
+/* PDF reader page: a clean white paper, same look as the web app. */
+:root { --bg: #e6e3dc; --ink: #111; --muted: #666; --teal: #19c3d6; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: "Latin Modern Roman", "CMU Serif", Georgia, "Times New Roman", serif; }
+#bar {
+  position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  padding: 8px 16px; background: rgba(230, 227, 220, .94); backdrop-filter: blur(6px);
+  border-bottom: 1px solid #0001; font: 13px system-ui, "Noto Sans Bengali", "Bangla Sangam MN", sans-serif;
+}
+#bar .btn { background: #111; color: #fff; padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+#bar .btn:focus-within { outline: 2px solid var(--teal); }
+#bar a { color: #1a4fb0; }
+#status { color: var(--muted); }
+main { padding: 32px 16px 50vh; }
+#paper { max-width: 780px; margin: 0 auto; padding: 56px 64px; background: #fff; box-shadow: 0 2px 30px #0002; font-size: 17px; line-height: 1.6; }
+#paper h1 { font-size: 1.7em; text-align: center; line-height: 1.25; }
+#paper h2 { font-size: 1.3em; margin-top: 1.8em; }
+#paper h3 { font-size: 1.08em; margin-top: 1.4em; }
+#paper .ltx_authors { text-align: center; font-size: .9em; color: #333; }
+#paper .ltx_abstract { margin: 2em 2em; font-size: .95em; }
+#paper .ltx_abstract h6 { text-align: center; font-size: 1em; margin: 0 0 .5em; }
+#paper .ltx_bibliography p { font-size: .85em; }
+.empty { text-align: center; padding: 60px 0; font-family: system-ui, "Noto Sans Bengali", sans-serif; }
+.empty .big { font-size: 64px; margin: 0; }
+.empty .hint { color: var(--muted); font-size: 14px; }
+@media (max-width: 700px) { #paper { padding: 28px 18px; font-size: 16px; } }

@@ -1,0 +1,51 @@
+/* Side panel: dark glass card, Bangla-first typography. */
+:root {
+  --bg: #0e1016; --card: #ffffff0b; --line: #ffffff17; --ink: #e8eef2; --muted: #93a5ae;
+  --teal: #19c3d6; --orange: #ff7a3d; --ok: #4ade80; --warn: #fbbf24;
+  --bn: "Noto Sans Bengali", "Hind Siliguri", "Kohinoor Bangla", "Bangla Sangam MN", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.6 var(--bn); display: flex; flex-direction: column; min-height: 100vh; }
+header { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 2; }
+.brand { font: 700 12px var(--mono); color: var(--muted); }
+.now { font: 600 13px var(--mono); color: var(--teal); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+.sep { flex: 1; }
+button, select {
+  font: 12px var(--bn); color: #cfd8dc; background: #ffffff10; border: 1px solid #ffffff22;
+  border-radius: 6px; padding: 4px 9px; cursor: pointer;
+}
+button:hover { background: #ffffff20; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+button.on { background: var(--teal); color: #001418; border-color: var(--teal); }
+button.primary { background: var(--teal); color: #001418; font-weight: 700; padding: 8px 14px; font-size: 14px; }
+button:disabled { opacity: .5; cursor: default; }
+section { padding: 0 14px; }
+#ai:not(:empty), #pdf:not([hidden]) { padding-top: 12px; }
+#history { flex: 1; padding-top: 12px; padding-bottom: 12px; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.box.warn { border-color: #fbbf2455; background: #fbbf2412; }
+.box p { margin: 0 0 6px; }
+.progress { height: 6px; background: #ffffff15; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.progress i { display: block; height: 100%; background: var(--teal); width: 0; transition: width .3s; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.card.live { border-color: #19c3d688; box-shadow: 0 0 20px #19c3d622; }
+.card h4 { margin: 0 0 6px; font: 600 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.card h4 .tag { color: var(--orange); margin-left: 6px; text-transform: none; }
+.card .bn { font-size: 15.5px; line-height: 1.75; margin: 0; white-space: pre-wrap; }
+.card .en { margin-top: 8px; color: #b8c6cc; font: 13px/1.55 system-ui, sans-serif; }
+.card .en summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.card .en p { margin: 4px 0 0; white-space: pre-wrap; }
+.checks { margin-top: 10px; display: grid; gap: 6px; font-size: 12.5px; }
+.check { padding: 6px 8px; border-radius: 6px; background: #ffffff08; }
+.check.ok { border-left: 3px solid var(--ok); }
+.check.warn { border-left: 3px solid var(--warn); }
+.check q { display: block; margin-top: 4px; color: #cfd8dc; font: 12px/1.5 Georgia, serif; }
+.check button { margin-top: 6px; }
+.thinking::after { content: " ▌"; color: var(--teal); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+footer { padding: 10px 14px 14px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .thinking::after { animation: none; } .progress i { transition: none; } }

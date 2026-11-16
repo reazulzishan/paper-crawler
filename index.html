@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Crawler</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="bar">
+    <span class="brand">/[•]\ paper crawler</span>
+    <select id="picker" aria-label="Paper"></select>
+    <form id="add"><input id="add-url" placeholder="paste arXiv link or ID…" aria-label="arXiv link or ID" size="24"><button>Open</button></form>
+    <span class="meta" id="meta"></span>
+    <span><kbd>?</kbd> keys</span>
+  </div>
+  <main id="stage"><div id="paper"><p class="loading">loading paper…</p></div></main>
+  <div id="title-overlay" hidden></div>
+  <canvas id="crawler" aria-hidden="true"></canvas>
+  <aside id="panel" aria-label="AI explainer"></aside>
+
+  <script type="module">
+    // Wiring: load a paper -> hand it to the crawler (spider) and analyst (AI panel).
+    import { listPapers, loadPaper, TITLE_TEXT } from "./js/loader.js";
+    import { Crawler } from "./js/crawler.js";
+    import { Analyst } from "./js/analyst.js";
+
+    const $ = (id) => document.getElementById(id);
+    const paperEl = $("paper");
+    const overlay = $("title-overlay");
+    overlay.textContent = TITLE_TEXT;
+
+    const crawler = new Crawler({
+      canvas: $("crawler"), paperEl,
+      onSection: (s) => analyst.onSection(s),
+      onNote: (n) => analyst.addNote(n),
+    });
+    const analyst = new Analyst({ panel: $("panel"), crawler });
+    await analyst.init();
+    if (crawler.debug) window.__analyst = analyst;
+
+    async function open(id) {
+      paperEl.innerHTML = `<p class="loading">loading ${id}…</p>`;
+      try {
+        const paper = await loadPaper(id, paperEl);
+        const m = paper.meta;
+        $("meta").textContent = `${m.title} · ${m.authors.slice(0, 3).join(", ")}${m.authors.length > 3 ? " et al." : ""} · arXiv:${m.id}`;
+        document.title = `${m.title} · Paper Crawler`;
+        history.replaceState(null, "", `?paper=${encodeURIComponent(id)}${crawler.debug ? "&debug" : ""}`);
+        crawler.setPaper(paper);
+        analyst.setPaper(paper);
+      } catch (e) {
+        paperEl.innerHTML = `<p class="loading">Couldn't load ${id}: ${e.message}</p>`;
+      }
+    }
+
+    const picker = $("picker");
+    async function fillPicker() {
+      const papers = await listPapers();
+      picker.innerHTML = papers.map((p) => `<option value="${p.id}">${p.id} · ${p.title.slice(0, 60)}</option>`).join("");
+      return papers;
+    }
+    const papers = await fillPicker();
+    picker.onchange = () => open(picker.value);
+
+    // Paste any arXiv link: serve.py downloads it (once), then it opens offline forever.
+    $("add").onsubmit = async (e) => {
+      e.preventDefault();
+      const url = $("add-url").value.trim();
+      if (!url) return;
+      const btn = $("add").querySelector("button");
+      btn.disabled = true;
+      $("meta").textContent = "downloading paper + figures from arXiv… (first time only)";
+      try {
+        const r = await fetch("api/fetch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+        const res = await r.json();
+        if (!r.ok) throw new Error(res.error);
+        await fillPicker();
+        picker.value = res.id;
+        $("add-url").value = "";
+        await open(res.id);
+      } catch (err) {
+        $("meta").textContent = "⚠ " + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+    if (!papers.length) {
+      paperEl.innerHTML = `<p class="loading">No papers yet. Run <code>python fetch_paper.py</code> first.</p>`;
+    } else {
+      const want = new URLSearchParams(location.search).get("paper");
+      picker.value = papers.some((p) => p.id === want) ? want : papers[0].id;
+      open(picker.value);
+    }
+
+    // ---------------------------------------------------------------- keys
+    const HELP = `Mouse: spider chases cursor · Click: send it there
+Space pause · F camera follow · T title overlay · D re-drop
+1/2/3 effects calm/normal/wild · C clear markup
+B/S/R explain level beginner/student/researcher
+E explain selected text · ?debug in the URL for IK lines`;
+    addEventListener("keydown", (e) => {
+      if (e.target.closest("input, select, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      const act = {
+        " ": () => (crawler.paused = !crawler.paused),
+        f: () => (crawler.follow = !crawler.follow),
+        t: () => (overlay.hidden = !overlay.hidden),
+        d: () => crawler.drop(),
+        c: () => crawler.clearMarkup(),
+        1: () => (crawler.intensity = "calm"),
+        2: () => (crawler.intensity = "normal"),
+        3: () => (crawler.intensity = "wild"),
+        b: () => analyst.setLevel("beginner"),
+        s: () => analyst.setLevel("student"),
+        r: () => analyst.setLevel("researcher"),
+        e: () => analyst.explainSelection(),
+        "?": () => alert(HELP),
+      }[k];
+      if (act) { e.preventDefault(); act(); }
+    });
+  </script>
+</body>
+</html>

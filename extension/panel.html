@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <title>Paper Crawler</title>
+  <link rel="stylesheet" href="css/panel.css">
+</head>
+<body>
+  <header>
+    <div class="brand">/[•]\ Paper Crawler</div>
+    <div id="now" class="now">একটা paper খুলুন…</div>
+    <div class="row" id="levels" role="group" aria-label="ব্যাখ্যার স্তর">
+      <button data-level="easy">সহজ</button>
+      <button data-level="mid">মাঝারি</button>
+      <button data-level="deep">গভীর</button>
+      <span class="sep"></span>
+      <button id="lang" title="ইংরেজি ব্যাখ্যাও দেখান">EN দেখাও</button>
+    </div>
+    <div class="row">
+      <button id="sel" title="Paper-এ কোনো লেখা select করে এটা চাপুন">✋ নির্বাচিত অংশ বুঝাও</button>
+      <button id="pause" title="Spider থামাও / চালাও">⏸</button>
+      <button id="clear" title="সব দাগ মুছুন">🧹</button>
+      <button id="drop" title="Spider আবার নামাও">🪂</button>
+      <select id="intensity" aria-label="দাগের পরিমাণ">
+        <option value="calm">দাগ: কম</option>
+        <option value="normal">দাগ: মাঝারি</option>
+        <option value="wild">দাগ: বেশি</option>
+      </select>
+    </div>
+    <div class="row">
+      <button id="all" class="primary" title="প্রতিটা section ব্যাখ্যা করুন, কঠিন শব্দের তালিকা বানান">📑 পুরো paper বিশ্লেষণ</button>
+      <button id="export" title="সব ব্যাখ্যা DOI সহ PDF হিসেবে নামান">⤓ PDF report</button>
+    </div>
+    <div id="progress" class="now" hidden></div>
+  </header>
+
+  <section id="ai"></section>
+  <section id="pdf" hidden></section>
+  <section id="history"></section>
+  <section id="glossary"></section>
+
+  <footer>AI ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য সবসময় মূল paper থেকে মিলিয়ে নিন। ✅ চিহ্ন মানে code দিয়ে paper-এর সাথে মিলিয়ে দেখা হয়েছে।</footer>
+  <script type="module" src="js/panel.js"></script>
+</body>
+</html>

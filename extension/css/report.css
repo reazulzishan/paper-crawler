@@ -1,0 +1,35 @@
+/* The PDF report: A4, print-first, Bangla-friendly. Scoped to .report so the
+   website can include it without restyling its own page. */
+@page { size: A4; margin: 18mm 16mm; }
+.report { --ink: #16181d; --muted: #5b6670; --teal: #0f8fa0; --ok: #15803d; --warn: #b45309; --line: #dde3e7;
+  color: var(--ink); background: #fff; font: 11.5pt/1.7 "Noto Sans Bengali", "Hind Siliguri", "Kohinoor Bangla", "Bangla Sangam MN", system-ui, sans-serif;
+  max-width: 760px; margin: 0 auto; padding: 24px 16px; box-sizing: border-box; }
+.report * { box-sizing: border-box; }
+.report .brand { font: 600 9pt ui-monospace, Menlo, monospace; color: var(--teal); letter-spacing: .02em; }
+.report h1 { font: 700 19pt/1.3 Georgia, "Times New Roman", serif; margin: 6px 0 4px; text-wrap: balance; text-align: left; }
+.report .authors { color: var(--muted); margin: 0 0 10px; font-size: 10pt; }
+.report .meta { border-collapse: collapse; font-size: 10pt; margin: 0 0 10px; }
+.report .meta th { text-align: left; color: var(--muted); font-weight: 600; padding: 2px 12px 2px 0; vertical-align: top; white-space: nowrap; }
+.report .meta td { padding: 2px 0; word-break: break-all; }
+.report a { color: var(--teal); }
+.report .disclaimer { font-size: 9.5pt; color: var(--muted); border-left: 3px solid var(--warn); padding: 6px 10px; background: #fff8ef; }
+.report section { break-inside: avoid-page; page-break-inside: avoid; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 14px; }
+.report h2 { font: 700 13pt/1.35 Georgia, serif; margin: 0 0 6px; color: #0b3d46; }
+.report .bn { margin: 0 0 6px; font-size: 12pt; }
+.report .en { margin: 0 0 6px; color: var(--muted); font: 10pt/1.55 Georgia, serif; }
+.report .note { font-size: 9.5pt; color: var(--warn); margin: 0 0 4px; }
+.report .ok, .report .warn { font-size: 9.5pt; padding: 4px 8px; margin-top: 4px; border-radius: 3px; }
+.report .ok { border-left: 3px solid var(--ok); background: #f0fdf4; }
+.report .warn { border-left: 3px solid var(--warn); background: #fffbeb; }
+.report .ok q { font-family: Georgia, serif; }
+.report .glossary table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+.report .glossary th, .report .glossary td { border: 1px solid var(--line); padding: 5px 7px; vertical-align: top; text-align: left; }
+.report .glossary th { background: #f1f5f7; }
+.report .glossary small { color: var(--muted); }
+.report .glossary tr { break-inside: avoid; page-break-inside: avoid; }
+.report footer { margin-top: 20px; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; }
+
+/* the extension's own report page */
+.screen-only { padding: 12px 16px; background: #f1f5f7; font: 14px system-ui, sans-serif; }
+.screen-only button { font: inherit; padding: 6px 14px; background: #0f8fa0; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+@media print { .screen-only { display: none; } .report { padding: 0; max-width: none; } }

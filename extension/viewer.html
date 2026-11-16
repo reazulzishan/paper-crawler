@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Crawler PDF reader</title>
+  <link rel="stylesheet" href="css/viewer.css">
+  <link rel="stylesheet" href="css/markup.css">
+</head>
+<body>
+  <header id="bar">
+    <b>/[•]\ Paper Crawler</b>
+    <label class="btn">📄 PDF খুলুন <input id="pick" type="file" accept="application/pdf,.pdf" hidden></label>
+    <a id="orig" target="_blank" hidden>মূল PDF ↗</a>
+    <span id="status">যেকোনো research paper-এর PDF বেছে নিন, বা এখানে টেনে আনুন (drag &amp; drop)।</span>
+  </header>
+  <main id="drop">
+    <div id="paper">
+      <div class="empty">
+        <p class="big">🕷</p>
+        <p><b>যেকোনো paper-এর PDF এখানে টেনে আনুন</b><br>বা উপরের "PDF খুলুন" চাপুন।</p>
+        <p class="hint">PDF আপনার computer-এই পড়া হয়, কোথাও upload হয় না।<br>Toolbar-এর 🕷 icon চাপলে পাশে বাংলা ব্যাখ্যা আসবে।</p>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="js/viewer.js"></script>
+</body>
+</html>

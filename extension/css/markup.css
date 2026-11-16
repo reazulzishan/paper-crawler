@@ -1,0 +1,40 @@
+/* copied from css/style.css by build_extension.py; edit there */
+/* =====================================================================
+   Markup effects. JS adds these to .w spans (or headings) on foot plants.
+   Outlines/box-shadows/transforms don't reflow; font-size changes do,
+   and the crawler re-steps feet whose word moved.
+   ===================================================================== */
+.w { border-radius: 2px; }
+[class^="m-"], [class*=" m-"] { animation: mpop .28s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes mpop { from { filter: brightness(1.8); } }
+
+.m-box-teal    { outline: 1.5px solid var(--teal); outline-offset: 1px; }
+.m-box-purple  { outline: 1.5px solid var(--purple); outline-offset: 1px; }
+.m-box-orange  { outline: 1.5px solid var(--orange); outline-offset: 1px; }
+.m-box-red     { outline: 2px solid var(--red); outline-offset: 2px; }
+.m-box-green   { outline: 1.5px solid var(--green); outline-offset: 1px; }
+
+.m-hl-orange   { background: var(--orange); color: #1a0d00; font-weight: 700; box-shadow: 0 0 0 .12em var(--orange); }
+.m-big         { display: inline-block; font-size: 1.7em; line-height: 1.1; margin: .1em .15em; font-family: "Arial Black", system-ui, sans-serif; }
+.m-hl-purple   {
+  background: var(--purple); color: #fff !important; font-family: var(--mono) !important;
+  box-shadow: 0 0 0 .2em var(--purple); border-radius: 1px;
+}
+h2.m-hl-purple, h3.m-hl-purple, h6.m-hl-purple { display: inline-block; padding: 0 .3em; }
+.m-hl-purple .w, .m-hl-purple * { color: #fff !important; font-family: var(--mono) !important; }
+.m-hl-magenta  { background: var(--magenta); color: #fff; box-shadow: 0 0 0 .1em var(--magenta); }
+.m-wide        { padding-right: 1.4em; }
+.m-hl-cyan     { background: var(--cyan); box-shadow: .25em 0 0 var(--cyan), -.25em 0 0 var(--cyan); border-radius: 0; }
+.m-hl-green    { background: linear-gradient(transparent 38%, #b4f59c 38%, #b4f59c 92%, transparent 92%); }
+.m-blowup      { font-size: 2.4em; line-height: 1; font-weight: 800; color: #ff5a1f; font-family: "Arial Black", system-ui, sans-serif; }
+.m-blowup.m-red { color: var(--red); }
+.m-rotate-green {
+  display: inline-block; transform: rotate(-70deg); transform-origin: 0 80%;
+  color: var(--green); font-weight: 700; font-family: system-ui, sans-serif; white-space: nowrap;
+}
+.m-color-text  { color: var(--mc, var(--purple)); font-weight: 600; }
+/* The AI's KEY phrase: the biggest markup there is. */
+.m-key         {
+  font-size: 2.2em; line-height: 1.1; font-weight: 900; color: #ff5a1f; font-family: "Arial Black", system-ui, sans-serif;
+  outline: 3px solid var(--red); outline-offset: 3px; background: #fff3ea;
+}

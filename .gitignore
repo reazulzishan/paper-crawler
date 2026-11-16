@@ -1,0 +1,8 @@
+.env
+cache/
+__pycache__/
+test-pdfs/
+dist/
+papers/
+.claude/
+.DS_Store
