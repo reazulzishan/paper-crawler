@@ -28,8 +28,16 @@ Same checks as the extension (evidence sentence and numbers matched against the
 paper by code), full-paper analysis with a glossary, and a PDF report with the
 DOI (made in the browser with html2pdf.js, so Bangla is shaped correctly).
 
+**Live:** <https://reazulzishan.github.io/paper-crawler/>
+
 Run locally: `python3 serve.py`, then open <http://localhost:5173/site/>.
 Rebuild after editing shared code: `python3 build_extension.py` (it also refreshes `site/`).
+
+Publish an update (GitHub Pages serves the `gh-pages` branch, which is just the `site/` folder):
+
+```bash
+python3 build_extension.py && git add -A && git commit -m "Update" && git push && git subtree push --prefix site origin gh-pages
+```
 
 ## Chrome extension: Bangla explanations on any paper
 
