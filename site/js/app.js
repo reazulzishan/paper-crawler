@@ -12,7 +12,7 @@ import { fromPage, findPhrase, sectionText, wrapWords } from "./loader.js";
 import { Crawler } from "./crawler.js";
 import { pdfToArticle } from "./pdf-reader.js";
 import { verify } from "./checks.js";
-import { detect, NanoEngine, WebEngine, WEB_MODELS, handoffPrompt, handoffUrl } from "./ai.js";
+import { detect, loadPuter, PuterEngine, NanoEngine, WebEngine, WEB_MODELS } from "./ai.js";
 import { reportHtml } from "./report-html.js";
 
 const $ = (s) => document.querySelector(s);
@@ -169,42 +169,57 @@ function jobFor(s, kind) {
 }
 
 // ================================================================== AI setup
+const savedEngine = () => { try { return localStorage.getItem("pc:engine"); } catch { return null; } };
+
+/** Default: one button, instant Claude via Puter. Offline (on-device) AI sits behind a link. */
 async function setupAI() {
   const box = $("#ai");
+  box.innerHTML = `<div class="box connect">
+      <h3>বাংলা ব্যাখ্যা চালু করুন</h3>
+      <p>একবার free Puter account দিয়ে login করুন (Google দিয়েও হয়)। এরপর প্রতিটা অংশের ব্যাখ্যা সাথে সাথে আসবে।</p>
+      <button class="btn-primary" id="connect">চালু করুন</button>
+      <button class="link" id="offline-toggle">অথবা offline AI ব্যবহার করুন</button>
+      <div id="offline" hidden></div>
+      <div class="progress" hidden><i></i></div><p id="ai-msg" class="muted"></p>
+    </div>`;
+  $("#connect").onclick = () => startEngine("puter");
+  $("#offline-toggle").onclick = () => { $("#offline").hidden = !$("#offline").hidden; if (!$("#offline").innerHTML) renderOffline(); };
+  loadPuter().then(() => {
+    // returning reader: connect silently
+    if (PuterEngine.signedIn() && (savedEngine() || "puter") === "puter") startEngine("puter");
+  }).catch(() => {});
+  const kind = savedEngine();
+  if (kind && kind !== "puter") startEngine(kind); // offline model already downloaded before: loads from cache
+}
+
+async function renderOffline() {
   const d = await detect();
-  const nanoOk = d.nano !== "unavailable";
-  const opt = (engine, icon, title, sub, rec) => `<button class="ai-opt" data-engine="${engine}"><span class="ic">${icon}</span>
-    <b>${title}${rec ? `<span class="rec">ভালো</span>` : ""}</b><span>${sub}</span></button>`;
+  const opt = (engine, title, sub) => `<button class="ai-opt" data-engine="${engine}"><b>${title}</b><span>${sub}</span></button>`;
   const options = [];
-  if (d.gpu) options.push(opt("big", "🧠", WEB_MODELS.big.label, "সরাসরি বাংলায় লেখে · প্রায় 2.5 GB, একবার", true));
-  if (nanoOk) options.push(opt("nano", "⚡", "Chrome-এর built-in AI", "সবচেয়ে হালকা · ইংরেজি থেকে বাংলা অনুবাদ"));
-  if (d.gpu) options.push(opt("small", "🪶", WEB_MODELS.small.label, "দুর্বল computer-এর জন্য · প্রায় 1.3 GB"));
-  box.innerHTML = `<div class="box ai-pick"><h3>বাংলা ব্যাখ্যার জন্য AI বেছে নিন</h3>
-    <p>Free। একবার download হয়, তারপর আপনার computer-এই চলে, internet ছাড়াও।</p>
-    ${options.join("") || `<p>এই browser বা computer-এ AI চালানো যায় না। প্রতিটা অংশের নিচের <b>Claude / ChatGPT</b> বোতাম ব্যবহার করুন।</p>`}
-    <div class="progress" hidden><i></i></div><p id="ai-msg" class="muted"></p></div>`;
-  box.querySelectorAll("[data-engine]").forEach((b) => (b.onclick = () => startEngine(b.dataset.engine)));
-  if (d.nano === "available") startEngine("nano"); // already downloaded earlier: no click needed
+  if (d.gpu) options.push(opt("big", WEB_MODELS.big.label, "Computer-এই চলে · প্রথমবার প্রায় 2.5 GB download"));
+  if (d.nano !== "unavailable") options.push(opt("nano", "Chrome-এর built-in AI", "সবচেয়ে হালকা · ইংরেজি থেকে বাংলা অনুবাদ"));
+  if (d.gpu) options.push(opt("small", WEB_MODELS.small.label, "দুর্বল computer-এর জন্য · প্রায় 1.3 GB"));
+  $("#offline").innerHTML = `<p class="muted">Account লাগে না, paper কোথাও যায় না, internet ছাড়াও চলে। মান একটু কম।</p>` +
+    (options.join("") || `<p class="muted">এই browser-এ offline AI চলে না।</p>`);
+  $("#offline").querySelectorAll("[data-engine]").forEach((b) => (b.onclick = () => startEngine(b.dataset.engine)));
 }
 
 async function startEngine(kind) {
   const box = $("#ai");
   box.querySelectorAll("button").forEach((b) => (b.disabled = true));
   const bar = box.querySelector(".progress"), fill = box.querySelector(".progress i"), msg = $("#ai-msg");
-  if (bar) bar.hidden = false;
-  const engine = kind === "nano" ? new NanoEngine() : new WebEngine(kind);
+  if (bar && kind !== "puter") bar.hidden = false;
+  if (msg && kind === "puter") msg.textContent = "Login window খুলছে…";
+  const engine = kind === "puter" ? new PuterEngine() : kind === "nano" ? new NanoEngine() : new WebEngine(kind);
   try {
     await engine.init((label, frac) => {
       if (fill) fill.style.width = Math.round(frac * 100) + "%";
       if (msg) msg.textContent = `${label} download/load হচ্ছে… ${Math.round(frac * 100)}% (প্রথমবার কয়েক মিনিট লাগতে পারে)`;
     });
     state.engine = engine;
-    box.innerHTML = `<div class="ai-ready">AI চালু: ${esc(engine.name)}</div>`;
-    toast("AI চালু হয়েছে। এখন paper পড়ুন, ব্যাখ্যা আসতে থাকবে।");
-    // sections shown before the AI was ready get a real explanation now
-    const redo = state.entries.filter((e) => !e.ai && !e.error);
-    state.entries = state.entries.filter((e) => !redo.includes(e));
-    for (const e of redo) { e.card.remove(); enqueue(e.job); }
+    try { localStorage.setItem("pc:engine", kind); } catch { /* private mode */ }
+    box.innerHTML = `<div class="ai-ready">বাংলা ব্যাখ্যা চালু · ${esc(engine.name)}</div>`;
+    if (!state.paper) toast("চালু হয়েছে। এখন একটা paper খুলুন।");
     pump();
   } catch (e) {
     console.error(e);
@@ -226,7 +241,7 @@ function enqueue(job) {
 }
 
 async function pump() {
-  if (state.busy || !state.queue.length) return;
+  if (state.busy || !state.queue.length || !state.engine) return; // waits for "চালু করুন"
   state.busy = true;
   const job = state.queue.shift();
   try { await explain(job); } catch (e) { console.error(e); }
@@ -297,7 +312,7 @@ function renderCard(card, entry) {
   card.querySelector(".skeleton")?.remove();
   const bn = card.querySelector(".bn");
   bn.classList.remove("thinking");
-  bn.textContent = entry.bn || entry.ai?.explanation || (entry.error ? "" : state.engine ? "" : "AI চালু করলে এখানে বাংলা ব্যাখ্যা আসবে। এখনই চাইলে নিচের Claude / ChatGPT বোতাম দিয়ে আপনার free account-এ বুঝে নিন।");
+  bn.textContent = entry.bn || entry.ai?.explanation || "";
   if (entry.error) bn.insertAdjacentHTML("afterend", `<div class="checks"><span class="chip warn">⚠ AI উত্তর দিতে পারেনি: ${esc(entry.error)}</span></div>`);
   if (entry.ai?.explanation && entry.bn && entry.ai.explanation !== entry.bn) {
     card.insertAdjacentHTML("beforeend", `<details class="en"><summary>English-এ দেখুন</summary><p>${esc(entry.ai.explanation)}</p></details>`);
@@ -321,19 +336,16 @@ function renderCard(card, entry) {
       card.append(ev);
     }
   }
-  // Always offer the strongest free option: the reader's own Claude / ChatGPT.
-  const prompt = handoffPrompt(entry.job);
-  const ask = document.createElement("div");
-  ask.className = "card-actions";
-  ask.innerHTML = `<span class="lbl">আরও গভীরে:</span>
-    <a target="_blank" rel="noopener" href="${handoffUrl.claude(prompt)}">Claude-এ বুঝুন ↗</a>
-    <a target="_blank" rel="noopener" href="${handoffUrl.chatgpt(prompt)}">ChatGPT-এ বুঝুন ↗</a>
-    <button data-act="copy">⧉ copy</button>`;
-  ask.querySelector("[data-act=copy]").onclick = async (e) => {
-    const text = entry.bn ? entry.bn + "\n\n— " + (state.info?.title || "") : prompt;
-    try { await navigator.clipboard.writeText(text); e.target.textContent = "✓ copied"; } catch { e.target.textContent = "copy হয়নি"; }
-  };
-  card.append(ask);
+  if (entry.bn) {
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+    actions.innerHTML = `<button data-act="copy">Copy</button>`;
+    actions.querySelector("[data-act=copy]").onclick = async (e) => {
+      try { await navigator.clipboard.writeText(entry.bn + "\n\n" + (state.info?.title || "")); e.target.textContent = "Copied ✓"; }
+      catch { e.target.textContent = "Copy হয়নি"; }
+    };
+    card.append(actions);
+  }
 }
 
 function renderGlossary() {
@@ -345,42 +357,63 @@ function renderGlossary() {
 }
 
 // ================================================================== full analysis + report
-$("#all").onclick = async () => {
-  if (!state.paper) return toast("আগে একটা paper খুলুন।");
-  if (!state.engine) return toast("আগে উপরের বোতাম দিয়ে একটা AI চালু করুন।");
-  const sections = state.paper.sections.filter((s) => s.title !== "Title" && !s.isReferences);
-  $("#all").disabled = true;
-  while (state.busy) await new Promise((r) => setTimeout(r, 300));
-  state.busy = true; // hold the normal queue
-  const prog = $("#progress");
-  prog.hidden = false;
-  try {
-    for (const [i, s] of sections.entries()) {
-      prog.innerHTML = `📑 পুরো paper বিশ্লেষণ: ${i + 1}/${sections.length} · ${esc(s.title)}<div class="bar"><i style="width:${Math.round((i / sections.length) * 100)}%"></i></div>`;
-      wrapWords(s.container); // so the spider can point there later
-      const job = { ...jobFor(s), level: state.level, order: i, quiet: true };
-      job.id = [job.kind, job.section, job.level, ""].join("|");
-      const old = state.entries.find((e) => e.id === job.id);
-      if (old) { old.order = i; continue; }
-      await explain(job);
+/** Explain every section (skipping ones already done). Resolves when finished. */
+async function runAnalysis() {
+  if (!state.paper) { toast("আগে একটা paper খুলুন।"); return false; }
+  if (!state.engine) { askToConnect(); return false; }
+  if (state.analysing) return state.analysing;
+  state.analysing = (async () => {
+    const sections = state.paper.sections.filter((s) => s.title !== "Title" && !s.isReferences);
+    $("#all").disabled = true;
+    while (state.busy) await new Promise((r) => setTimeout(r, 300));
+    state.busy = true; // hold the normal queue
+    const prog = $("#progress");
+    prog.hidden = false;
+    try {
+      for (const [i, s] of sections.entries()) {
+        prog.innerHTML = `পুরো paper বিশ্লেষণ · ${i + 1}/${sections.length} · ${esc(s.title)}<div class="bar"><i style="width:${Math.round((i / sections.length) * 100)}%"></i></div>`;
+        wrapWords(s.container); // so the spider can point there later
+        const job = { ...jobFor(s), level: state.level, order: i, quiet: true };
+        job.id = [job.kind, job.section, job.level, ""].join("|");
+        const old = state.entries.find((e) => e.id === job.id && e.ai);
+        if (old) { old.order = i; continue; }
+        state.entries = state.entries.filter((e) => e.id !== job.id); // drop an earlier failed try
+        await explain(job);
+      }
+      prog.innerHTML = `বিশ্লেষণ শেষ · ${sections.length}টা অংশ, ${state.glossary.size}টা কঠিন শব্দ<div class="bar"><i style="width:100%"></i></div>`;
+      return true;
+    } finally {
+      state.busy = false;
+      state.analysing = null;
+      $("#all").disabled = false;
+      pump();
     }
-    prog.innerHTML = `✅ বিশ্লেষণ শেষ: ${sections.length}টা অংশ, ${state.glossary.size}টা কঠিন শব্দ। এখন <b>⤓ PDF</b> চাপুন।<div class="bar"><i style="width:100%"></i></div>`;
-    toast("পুরো paper বিশ্লেষণ শেষ। ⤓ PDF চাপলে DOI সহ report পাবেন।");
-  } finally {
-    state.busy = false;
-    $("#all").disabled = false;
-    pump();
-  }
-};
+  })();
+  return state.analysing;
+}
+$("#all").onclick = () => runAnalysis();
 
+/** Point the reader at the connect button (used when an action needs the AI). */
+function askToConnect() {
+  showTab("explain");
+  $("#panel").classList.add("expanded");
+  const c = $("#ai .connect");
+  c?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  c?.classList.remove("pulse"); void c?.offsetWidth; c?.classList.add("pulse");
+  toast("আগে \"চালু করুন\" চাপুন। এক click-এ free login, তারপর সব কাজ করবে।");
+}
+
+// One click does it all: explain whatever is missing, then download the report.
 $("#export").onclick = async () => {
-  const done = state.entries.filter((e) => e.ai).map(({ card, job, ...e }) => e);
-  if (!done.length) return toast("আগে \"📑 পুরো paper বিশ্লেষণ\" চাপুন, তারপর PDF নামান।");
+  if (!state.paper) return toast("আগে একটা paper খুলুন।");
+  if (!state.engine) return askToConnect();
   const btn = $("#export");
   btn.disabled = true;
-  btn.textContent = "PDF বানানো হচ্ছে…";
-  toast("PDF report বানানো হচ্ছে…");
+  btn.textContent = "বিশ্লেষণ চলছে…";
   try {
+    if (!(await runAnalysis())) return;
+    btn.textContent = "PDF বানানো হচ্ছে…";
+    const done = state.entries.filter((e) => e.ai).map(({ card, job, ...e }) => e);
     const host = $("#report-host");
     host.innerHTML = `<div class="report">${reportHtml({
       paper: state.info, level: state.level, date: new Date().toISOString().slice(0, 10), ai: state.engine?.name,
@@ -398,13 +431,13 @@ $("#export").onclick = async () => {
       pagebreak: { mode: ["css", "legacy"], avoid: ["section", "tr"] },
     }).from(host.firstElementChild).save();
     host.innerHTML = "";
-    toast("✓ PDF download হয়েছে: " + name);
+    toast("PDF download হয়েছে: " + name);
   } catch (e) {
     console.error(e);
-    toast("PDF বানানো গেল না: " + e.message);
+    toast("PDF বানানো গেল না: " + e.message, true);
   } finally {
     btn.disabled = false;
-    btn.textContent = "⤓ PDF";
+    btn.textContent = "PDF report";
   }
 };
 
@@ -438,6 +471,7 @@ function explainSelection() {
   const sel = getSelection();
   const text = String(sel).trim().slice(0, MAX_TEXT);
   if (!text || !state.paper) return toast("আগে paper-এ কিছু লেখা mouse দিয়ে select করুন।");
+  if (!state.engine) return askToConnect();
   const r = sel.getRangeAt(0).getBoundingClientRect();
   state.crawler.goTo(r.left + scrollX + Math.min(r.width / 2, 40), r.top + scrollY + r.height / 2);
   const s = state.crawler.currentSection() || state.paper.sections[0];
@@ -446,10 +480,11 @@ function explainSelection() {
 $("#sel").onclick = explainSelection;
 $("#pause").onclick = () => { if (state.crawler) { state.crawler.paused = !state.crawler.paused; $("#pause").textContent = state.crawler.paused ? "▶" : "⏸"; } };
 $("#clear").onclick = () => state.crawler?.clearMarkup();
-document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => {
-  document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b));
-  document.querySelectorAll("[data-pane]").forEach((p) => (p.hidden = p.dataset.pane !== b.dataset.tab));
-}));
+function showTab(tab) {
+  document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === tab));
+  document.querySelectorAll("[data-pane]").forEach((p) => (p.hidden = p.dataset.pane !== tab));
+}
+document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
 addEventListener("keydown", (e) => {
   if (e.target.closest("input, textarea") || e.metaKey || e.ctrlKey) return;
   if (e.key.toLowerCase() === "e") explainSelection();

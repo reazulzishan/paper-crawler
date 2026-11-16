@@ -135,6 +135,39 @@ export class WebEngine {
   }
 }
 
+// ------------------------------------------------------------------ 0. Claude via Puter (instant, default)
+// Puter's "user pays" model: the reader signs in once with a free Puter account
+// and their own free allowance covers the calls. No key, no cost to the site owner.
+const PUTER_SRC = "https://js.puter.com/v2/";
+let puterLoading = null;
+export function loadPuter() {
+  if (window.puter) return Promise.resolve();
+  return (puterLoading ||= new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    Object.assign(s, { src: PUTER_SRC, onload: ok, onerror: () => fail(new Error("Puter লোড হয়নি। Internet connection দেখুন।")) });
+    document.head.append(s);
+  }));
+}
+export class PuterEngine {
+  name = "Claude Haiku (Puter)";
+  model = "claude-haiku-5-5";
+  static signedIn() { return !!window.puter?.auth?.isSignedIn?.(); }
+  /** Call from a click: Puter's sign-in opens a popup. */
+  async init() {
+    await loadPuter();
+    if (!puter.auth.isSignedIn()) await puter.auth.signIn();
+  }
+  async explain(job) {
+    const resp = await puter.ai.chat(taskText(job, "bn") + "\n\nReply with only the JSON object, no other text.", { model: this.model });
+    const raw = typeof resp === "string" ? resp : resp?.message?.content?.[0]?.text ?? resp?.message?.content ?? String(resp);
+    const out = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
+    return {
+      explanation: out.explanation_bn, bn: out.explanation_bn, evidence: out.evidence, key: out.key,
+      terms: (out.terms || []).map((t) => ({ term: t.term, meaning: "", bn: t.meaning_bn })),
+    };
+  }
+}
+
 // ------------------------------------------------------------------ 3. hand off to Claude / ChatGPT
 /** A ready-made prompt for the reader's own free Claude or ChatGPT account. */
 export function handoffPrompt(job) {
