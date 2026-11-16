@@ -430,7 +430,7 @@ $("#export").onclick = async () => {
       await window.html2pdf().set({
         margin: [12, 10, 14, 10], filename: name,
         image: { type: "jpeg", quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0, windowWidth: 900 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0 },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: { mode: ["css", "legacy"], avoid: ["section", "tr"] },
       }).from(host.firstElementChild).save();
